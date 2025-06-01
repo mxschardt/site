@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ru-ru"><head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+     <meta name="description" content="
+Выполнил Шардт М.А., 4об_ИВТ-1/21
+В данной работе будет реализована работа сервера авторизации, сервера ресурсов и сервера клиента по OAuth 2.
+Перед началом работы нужно внести доменные имена серверов в /etc/hosts. Можно выбрать любые доменные имена, в данной работе у всех серверов будет одинаковый префикс wewe.
+127.0.0.1 wewe-client
+127.0.0.1 wewe-auth
+127.0.0.1 wewe-resource
+
+В дальнейшем это также может помочь с настройкой Docker. Docker использует названия контейнеров как их доменные имена, используя внутренний DNS для их адресации. Если при разработке и при деплое будут использоваться одинаковые доменные имена не нужно будет менять конфигурацию самих серверов.">  
+
+    <title>
+      
+        Лабораторная работа: Реализация OAuth 2.0 &#43; OpenID Connect с использованием Spring Boot, JWT и Redis
+      
+    </title>
+
+
+
+    <link rel="shortcut icon" type="image/x-icon" href="../../uni-portfolio-site/" />
+    
+    
+    
+    <link rel="stylesheet" href="https://mxschardt.github.io/uni-portfolio-site/css/main.571f38b6e2a29120873a1adc44f3b86346a78a9782bc5f1caf418e00723a7355943dd28d03bfb508dd13a1d53ef231c02912b687f6aab373021a4a5dd651837e.css" integrity="sha512-Vx84tuKikSCHOhrcRPO4Y0anipeCvF8cr0GOAHI6c1WUPdKNA7&#43;1CN0TodU&#43;8jHAKRK2h/aqs3MCGkpd1lGDfg==" />
+    
+
+    
+      <link rel="stylesheet" href="https://mxschardt.github.io/uni-portfolio-site/posts/prog7/style.css"/>
+    
+
+  </head>
+<body a="light">
+        <main class="page-content" aria-label="Content">
+            <div class="w">
+                <div class="post-meta">
+                    <a href="https://mxschardt.github.io/uni-portfolio-site/">Домой</a>
+
+                    <p>
+                        <time datetime="2021-12-20 14:55:50 &#43;0300 MSK">
+                            
+                        </time>
+                    </p>
+                </div>
+
+<article>
+    <h1>Лабораторная работа: Реализация OAuth 2.0 &#43; OpenID Connect с использованием Spring Boot, JWT и Redis</h1>
+
+    
+
+    <blockquote>
+<p>Выполнил Шардт М.А., 4об_ИВТ-1/21</p></blockquote>
+<p>В данной работе будет реализована работа сервера авторизации, сервера ресурсов и сервера клиента по OAuth 2.</p>
+<p>Перед началом работы нужно внести доменные имена серверов в /etc/hosts. Можно выбрать любые доменные имена, в данной работе у всех серверов будет одинаковый префикс <code>wewe</code>.</p>
+<pre tabindex="0"><code>127.0.0.1 wewe-client
+127.0.0.1 wewe-auth
+127.0.0.1 wewe-resource
+</code></pre><blockquote>
+<p>В дальнейшем это также может помочь с настройкой Docker. Docker использует названия контейнеров как их доменные имена, используя внутренний DNS для их адресации. Если при разработке и при деплое будут использоваться одинаковые доменные имена не нужно будет менять конфигурацию самих серверов.</p></blockquote>
+<blockquote>
+<p>В проектах файлы настройки разделены на разные профили: application.yaml, application-dev.yaml и application-prod.yaml. Это помогает разделить настройку приложения для разработки и для продакшн.</p></blockquote>
+<h2 id="сервер-авторизации">Сервер авторизации</h2>
+<p>Для создания Spring Authorization Server нужно поставить следующую зависимость:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-xml" data-lang="xml"><span style="display:flex;"><span><span style="color:#f92672">&lt;dependency&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;groupId&gt;</span>org.springframework.boot<span style="color:#f92672">&lt;/groupId&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;artifactId&gt;</span>spring-boot-starter-oauth2-authorization-server<span style="color:#f92672">&lt;/artifactId&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;/dependency&gt;</span>
+</span></span></code></pre></div><p>Напишем класс конфигурации сервера.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Configuration</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@EnableWebSecurity</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">SecurityConfig</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">/* (1) */</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//    @Bean</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//    @Order(1)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//    public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//            throws Exception {</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//        OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//        http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//                        .oidc(Customizer.withDefaults());</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//        http</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//                .exceptionHandling((exceptions) -&gt; exceptions</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//                        .defaultAuthenticationEntryPointFor(</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//                                new LoginUrlAuthenticationEntryPoint(&#34;/login&#34;),</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//                                new MediaTypeRequestMatcher(MediaType.TEXT_HTML)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//                        )</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//                );</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//        return http.build();</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//    }</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//    @Bean</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//    @Order(2)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//            throws Exception {</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//        http</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//                .authorizeHttpRequests((authorize) -&gt; authorize</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//                        .anyRequest().authenticated()</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//                )</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//                .formLogin(Customizer.withDefaults());</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//        return http.build();</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//    }</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">/* (2) */</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Bean</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> UserDetailsService <span style="color:#a6e22e">userDetailsService</span>() {
+</span></span><span style="display:flex;"><span>        UserDetails userDetails <span style="color:#f92672">=</span> User.<span style="color:#a6e22e">withUsername</span>(<span style="color:#e6db74">&#34;user&#34;</span>)
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">password</span>(<span style="color:#e6db74">&#34;password&#34;</span>)
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">roles</span>(<span style="color:#e6db74">&#34;USER&#34;</span>)
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">build</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> InMemoryUserDetailsManager(userDetails);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">/* (3) */</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Bean</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> PasswordEncoder <span style="color:#a6e22e">passwordEncoder</span>() {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> NoOpPasswordEncoder.<span style="color:#a6e22e">getInstance</span>();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">/* (4) */</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Bean</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> RegisteredClientRepository <span style="color:#a6e22e">registeredClientRepository</span>() {
+</span></span><span style="display:flex;"><span>        RegisteredClient weweClient <span style="color:#f92672">=</span> RegisteredClient.<span style="color:#a6e22e">withId</span>(UUID.<span style="color:#a6e22e">randomUUID</span>().<span style="color:#a6e22e">toString</span>())
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">clientId</span>(<span style="color:#e6db74">&#34;wewe-client&#34;</span>)
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">clientSecret</span>(<span style="color:#e6db74">&#34;{noop}secret&#34;</span>)
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">clientAuthenticationMethod</span>(ClientAuthenticationMethod.<span style="color:#a6e22e">CLIENT_SECRET_BASIC</span>)
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">authorizationGrantTypes</span>(auth <span style="color:#f92672">-&gt;</span> {
+</span></span><span style="display:flex;"><span>                    auth.<span style="color:#a6e22e">add</span>(AuthorizationGrantType.<span style="color:#a6e22e">AUTHORIZATION_CODE</span>);
+</span></span><span style="display:flex;"><span>                    auth.<span style="color:#a6e22e">add</span>(AuthorizationGrantType.<span style="color:#a6e22e">REFRESH_TOKEN</span>);
+</span></span><span style="display:flex;"><span>                    auth.<span style="color:#a6e22e">add</span>(AuthorizationGrantType.<span style="color:#a6e22e">CLIENT_CREDENTIALS</span>);
+</span></span><span style="display:flex;"><span>                })
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">redirectUri</span>(<span style="color:#e6db74">&#34;http://wewe-client:8080/login/oauth2/code/wewe-client&#34;</span>)
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">scope</span>(OidcScopes.<span style="color:#a6e22e">OPENID</span>)
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">scope</span>(OidcScopes.<span style="color:#a6e22e">PROFILE</span>)
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">scope</span>(<span style="color:#e6db74">&#34;read&#34;</span>)
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">clientSettings</span>(
+</span></span><span style="display:flex;"><span>                        ClientSettings.<span style="color:#a6e22e">builder</span>()
+</span></span><span style="display:flex;"><span>                                .<span style="color:#a6e22e">requireAuthorizationConsent</span>(<span style="color:#66d9ef">true</span>)
+</span></span><span style="display:flex;"><span>                                .<span style="color:#a6e22e">requireProofKey</span>(<span style="color:#66d9ef">true</span>)
+</span></span><span style="display:flex;"><span>                                .<span style="color:#a6e22e">build</span>())
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">build</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> InMemoryRegisteredClientRepository(weweClient);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><ol>
+<li>Изменение поведения запросов обработки происходит через бин <code>SecurityFilterChain authorizationServerFilterChain(HttpSecurity http)</code> и <code>SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http)</code>. В данной работе будем пользоваться стандартной конфигурацией, закомментированный код приведен как пример такой кастомизации.</li>
+<li>Добавляем пользователей, представляя реализацию <code>UserDetailsService</code>. Изначально будем пользоваться <code>InMemoryUserDetailsManager</code>, но позднее напишем собственную реализацию, чтобы загружать пользователей из redis.</li>
+<li>Настроим основного клиента <code>wewe-client</code>. Это будет наш сервер клиента.</li>
+<li>Также нужно определить <code>PasswordEncoder</code>. В рамках работы не будем пользоваться шифрованием паролей.</li>
+</ol>
+<h2 id="сервер-ресурсов">Сервер ресурсов</h2>
+<p>Установим следующие зависимости:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-xml" data-lang="xml"><span style="display:flex;"><span><span style="color:#f92672">&lt;dependency&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;groupId&gt;</span>org.springframework.boot<span style="color:#f92672">&lt;/groupId&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;artifactId&gt;</span>spring-boot-starter-oauth2-resource-server<span style="color:#f92672">&lt;/artifactId&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;/dependency&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;dependency&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;groupId&gt;</span>org.springframework.boot<span style="color:#f92672">&lt;/groupId&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;artifactId&gt;</span>spring-boot-starter-security<span style="color:#f92672">&lt;/artifactId&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;/dependency&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;dependency&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;groupId&gt;</span>org.springframework.boot<span style="color:#f92672">&lt;/groupId&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;artifactId&gt;</span>spring-boot-starter-web<span style="color:#f92672">&lt;/artifactId&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;/dependency&gt;</span>
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Configuration</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@EnableWebSecurity</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">SecurityConfig</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">/* (1) */</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Bean</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> SecurityFilterChain <span style="color:#a6e22e">securityFilterChain</span>(HttpSecurity http) <span style="color:#66d9ef">throws</span> Exception {
+</span></span><span style="display:flex;"><span>        http
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">authorizeHttpRequests</span>((authorize) <span style="color:#f92672">-&gt;</span> authorize
+</span></span><span style="display:flex;"><span>                        <span style="color:#75715e">// Обязательно префикс &#34;SCOPE_&#34;, иначе не работает.</span>
+</span></span><span style="display:flex;"><span>                        .<span style="color:#a6e22e">requestMatchers</span>(<span style="color:#e6db74">&#34;/secrets&#34;</span>).<span style="color:#a6e22e">hasAuthority</span>(<span style="color:#e6db74">&#34;SCOPE_read&#34;</span>)
+</span></span><span style="display:flex;"><span>                        .<span style="color:#a6e22e">anyRequest</span>().<span style="color:#a6e22e">authenticated</span>()
+</span></span><span style="display:flex;"><span>                )
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">oauth2ResourceServer</span>((oauth2) <span style="color:#f92672">-&gt;</span> oauth2
+</span></span><span style="display:flex;"><span>                        .<span style="color:#a6e22e">jwt</span>(Customizer.<span style="color:#a6e22e">withDefaults</span>())
+</span></span><span style="display:flex;"><span>                );
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> http.<span style="color:#a6e22e">build</span>();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><ol>
+<li>Настроим бин <code>SecurityFilterChain securityFilterChain(HttpScurity http)</code>. Все запросы должны быть авторизированными, а по пути /secrets иметь права для чтения (SCOPE_read).</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#75715e">/* (2) */</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@RestController</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@RequestMapping</span>(value <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;/secrets&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">SecretsController</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@GetMapping</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> String <span style="color:#a6e22e">getSecret</span>() {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;this is a well-kept secret&#34;</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><ol start="2">
+<li>Настроим REST контроллер для выдачи серетной информации. Секретом будет обычная строка.</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">spring</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">security</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">oauth2</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">resourceserver</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">jwt</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">jwk-set-uri</span>: <span style="color:#ae81ff">http://wewe-auth:9001/oauth2/jwks</span>
+</span></span></code></pre></div><ol start="3">
+<li>Для корректной связи с сервером авторизации в настройках пропишем <code>jwk-set-uri</code>.</li>
+</ol>
+<h2 id="сервер-клиент">Сервер клиент</h2>
+<p>Установим следующие зависимости:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-xml" data-lang="xml"><span style="display:flex;"><span> <span style="color:#f92672">&lt;dependency&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;groupId&gt;</span>org.springframework.boot<span style="color:#f92672">&lt;/groupId&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;artifactId&gt;</span>spring-boot-starter-oauth2-client<span style="color:#f92672">&lt;/artifactId&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;/dependency&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;dependency&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;groupId&gt;</span>org.springframework.boot<span style="color:#f92672">&lt;/groupId&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;artifactId&gt;</span>spring-boot-starter-web<span style="color:#f92672">&lt;/artifactId&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;/dependency&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;dependency&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;groupId&gt;</span>org.springframework.boot<span style="color:#f92672">&lt;/groupId&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;artifactId&gt;</span>spring-boot-starter-webflux<span style="color:#f92672">&lt;/artifactId&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;/dependency&gt;</span>
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#75715e">/* (1) */</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@Configuration</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">WebClientConfig</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Bean</span>
+</span></span><span style="display:flex;"><span>    WebClient <span style="color:#a6e22e">webClient</span>(OAuth2AuthorizedClientManager authorizedClientManager) {
+</span></span><span style="display:flex;"><span>        ServletOAuth2AuthorizedClientExchangeFilterFunction oauthClient <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">new</span> ServletOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> WebClient.<span style="color:#a6e22e">builder</span>()
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">apply</span>(oauthClient.<span style="color:#a6e22e">oauth2Configuration</span>())
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">build</span>();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Bean</span>
+</span></span><span style="display:flex;"><span>    OAuth2AuthorizedClientManager <span style="color:#a6e22e">authorizedClientManager</span>(
+</span></span><span style="display:flex;"><span>            ClientRegistrationRepository clientRegistrationRepository,
+</span></span><span style="display:flex;"><span>            OAuth2AuthorizedClientRepository authorizedClientRepository) {
+</span></span><span style="display:flex;"><span>        OAuth2AuthorizedClientProvider authorizedClientProvider <span style="color:#f92672">=</span> OAuth2AuthorizedClientProviderBuilder.<span style="color:#a6e22e">builder</span>()
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">authorizationCode</span>()
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">clientCredentials</span>()
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">build</span>();
+</span></span><span style="display:flex;"><span>        DefaultOAuth2AuthorizedClientManager authorizedClientManager <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> DefaultOAuth2AuthorizedClientManager(
+</span></span><span style="display:flex;"><span>                clientRegistrationRepository, authorizedClientRepository
+</span></span><span style="display:flex;"><span>        );
+</span></span><span style="display:flex;"><span>        authorizedClientManager.<span style="color:#a6e22e">setAuthorizedClientProvider</span>(authorizedClientProvider);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> authorizedClientManager;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><ol>
+<li>Настройка <code>WebClient</code> для работы по OAuth 2.</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#75715e">/* (2) */</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@RestController</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ResourceServerSecretsController</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> WebClient webClient;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> String resourceServerBaseUri;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#a6e22e">ResourceServerSecretsController</span>(WebClient webClient,
+</span></span><span style="display:flex;"><span>                                           <span style="color:#a6e22e">@Value</span>(<span style="color:#e6db74">&#34;${resourceServer.baseUri}&#34;</span>) String messagesBaseUri) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">webClient</span> <span style="color:#f92672">=</span> webClient;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">resourceServerBaseUri</span> <span style="color:#f92672">=</span> messagesBaseUri;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">/* (3) */</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@GetMapping</span>(value <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;/secrets&#34;</span>, params <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;grant_type=client_credentials&#34;</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> String <span style="color:#a6e22e">getSecretsWithClientCredentials</span>() {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">webClient</span>
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">get</span>()
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">uri</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">resourceServerBaseUri</span>)
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">attributes</span>(clientRegistrationId(<span style="color:#e6db74">&#34;wewe-client-client-credentials&#34;</span>))
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">retrieve</span>()
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">bodyToMono</span>(String.<span style="color:#a6e22e">class</span>)
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">block</span>();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">/* (4) */</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@GetMapping</span>(<span style="color:#e6db74">&#34;/secrets&#34;</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> String <span style="color:#a6e22e">getSecretsWithAuthorizationCode</span>() {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> webClient
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">get</span>()
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">uri</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">resourceServerBaseUri</span>)
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">attributes</span>(clientRegistrationId(<span style="color:#e6db74">&#34;wewe-client-authorization-code&#34;</span>))
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">retrieve</span>()
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">bodyToMono</span>(String.<span style="color:#a6e22e">class</span>)
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">block</span>();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><ol start="2">
+<li>Контроллер для получения доступа к ресурсам пользователями. Запросы по пути /secrets будут получать данные с сервера ресурсов и выдавать их пользователю после авторизации.</li>
+<li>При передаче параметра <code>grant_type=client_credentials</code> клиент будет проводить авторизацию по Client Credentials Flow, отправляя client_secret, чтобы получить токен доступа, т.е. не требуя авторизации от пользователя.</li>
+<li>Без передачи данного параметра работает Authorization Code Flow, который, в свою очередь, требует авторизации от пользователя.</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Configuration</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">AuthorazationRequestResolverConfig</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">/* (5) */</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Bean</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> OAuth2AuthorizationRequestResolver <span style="color:#a6e22e">pkceResolver</span>(ClientRegistrationRepository clientRegistrationRepository) {
+</span></span><span style="display:flex;"><span>        DefaultOAuth2AuthorizationRequestResolver resolver <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">new</span> DefaultOAuth2AuthorizationRequestResolver(
+</span></span><span style="display:flex;"><span>                        clientRegistrationRepository,
+</span></span><span style="display:flex;"><span>                        OAuth2AuthorizationRequestRedirectFilter.<span style="color:#a6e22e">DEFAULT_AUTHORIZATION_REQUEST_BASE_URI</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">/* (6) */</span>
+</span></span><span style="display:flex;"><span>        resolver.<span style="color:#a6e22e">setAuthorizationRequestCustomizer</span>(OAuth2AuthorizationRequestCustomizers.<span style="color:#a6e22e">withPkce</span>());
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> resolver;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><ol start="5">
+<li>Так как на сервере настроена проверка по PKCE, то настроим ее и на клиенте. Для этого нужно определить бин <code>OAuth2AuthorizationRequestResolver</code></li>
+<li>и добавить в него PKCE.</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Configuration</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@EnableWebSecurity</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">SecurityConfig</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    OAuth2AuthorizationRequestResolver authorizationRequestResolver;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#a6e22e">SecurityConfig</span>(OAuth2AuthorizationRequestResolver authorizationRequestResolver) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">authorizationRequestResolver</span> <span style="color:#f92672">=</span> authorizationRequestResolver;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Bean</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> SecurityFilterChain <span style="color:#a6e22e">securityFilterChain</span>(HttpSecurity http) <span style="color:#66d9ef">throws</span> Exception {
+</span></span><span style="display:flex;"><span>        http
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">authorizeHttpRequests</span>(auth <span style="color:#f92672">-&gt;</span> {
+</span></span><span style="display:flex;"><span>                    <span style="color:#75715e">// Запросы к серверу ресурсов по Authorization Code Flow</span>
+</span></span><span style="display:flex;"><span>                    <span style="color:#75715e">//      автоматически требуют авторизации у сервера авторизации.</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//                   auth.requestMatchers(&#34;/secured&#34;).authenticated();</span>
+</span></span><span style="display:flex;"><span>                    auth.<span style="color:#a6e22e">anyRequest</span>().<span style="color:#a6e22e">permitAll</span>();
+</span></span><span style="display:flex;"><span>                })
+</span></span><span style="display:flex;"><span>                .<span style="color:#a6e22e">oauth2Login</span>(auth <span style="color:#f92672">-&gt;</span> auth
+</span></span><span style="display:flex;"><span>                        .<span style="color:#a6e22e">authorizationEndpoint</span>(authEndpoint <span style="color:#f92672">-&gt;</span> authEndpoint
+</span></span><span style="display:flex;"><span>                                <span style="color:#75715e">/* (7) */</span>
+</span></span><span style="display:flex;"><span>                                .<span style="color:#a6e22e">authorizationRequestResolver</span>(authorizationRequestResolver)
+</span></span><span style="display:flex;"><span>                        ));
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> http.<span style="color:#a6e22e">build</span>();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><ol start="7">
+<li>и использовать указать его как основной резолвер для запросов авторизации в <code>SecurityFilterChain</code>.</li>
+</ol>
+<p>И занесем параметры сервера авторизации и сервера ресурсов в application.yaml:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">resourceServer</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">baseUri</span>: <span style="color:#ae81ff">http://wewe-resource:9002/secrets</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">secrets</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">client-secret</span>: <span style="color:#ae81ff">${CLIENT_SECRET}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">spring</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">security</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">oauth2</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">client</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">registration</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e"># ()</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">wewe-client-authorization-code</span>:
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">client-id</span>: <span style="color:#ae81ff">wewe-client</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">client-secret</span>: <span style="color:#ae81ff">${secrets.client-secret}</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">client-authentication-method</span>: <span style="color:#ae81ff">client_secret_basic</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">authorization-grant-type</span>: <span style="color:#ae81ff">authorization_code</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">redirect-uri</span>: <span style="color:#e6db74">&#34;{baseUrl}/login/oauth2/code/wewe-client&#34;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">scope</span>:
+</span></span><span style="display:flex;"><span>              - <span style="color:#ae81ff">openid</span>
+</span></span><span style="display:flex;"><span>              - <span style="color:#ae81ff">profile</span>
+</span></span><span style="display:flex;"><span>              - <span style="color:#ae81ff">read</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">client-name</span>: <span style="color:#e6db74">&#34;Wewe Auth&#34;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">provider</span>: <span style="color:#ae81ff">wewe-auth</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e"># (2)</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">wewe-client-client-credentials</span>:
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">client-id</span>: <span style="color:#ae81ff">wewe-client</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">client-secret</span>: <span style="color:#ae81ff">${secrets.client-secret}</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">client-authentication-method</span>: <span style="color:#ae81ff">client_secret_basic</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">authorization-grant-type</span>: <span style="color:#ae81ff">client_credentials</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">redirect-uri</span>: <span style="color:#e6db74">&#34;{baseUrl}/login/oauth2/code/wewe-client&#34;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">scope</span>:
+</span></span><span style="display:flex;"><span>              - <span style="color:#ae81ff">openid</span>
+</span></span><span style="display:flex;"><span>              - <span style="color:#ae81ff">profile</span>
+</span></span><span style="display:flex;"><span>              - <span style="color:#ae81ff">read</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">client-name</span>: <span style="color:#e6db74">&#34;Wewe Auth Client Credentials&#34;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">provider</span>: <span style="color:#ae81ff">wewe-auth</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">provider</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">wewe-auth</span>:
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">issuer-uri</span>: <span style="color:#e6db74">&#34;http://wewe-auth:9001&#34;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">authorization-uri</span>: <span style="color:#e6db74">&#34;http://wewe-auth:9001/oauth2/authorize&#34;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">token-uri</span>: <span style="color:#e6db74">&#34;http://wewe-auth:9001/oauth2/token&#34;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">jwk-set-uri</span>: <span style="color:#e6db74">&#34;http://wewe-auth:9001/oauth2/jwks&#34;</span>
+</span></span></code></pre></div><p>Здесь определены два flow:</p>
+<ol>
+<li>wewe-client-authorization-code &ndash; Authorization Flow.</li>
+<li>wewe-client-client-credentials &ndash; Client Secret Flow.</li>
+</ol>
+<h2 id="redis">Redis</h2>
+<p>Redis будем использовать для сохранения следующей информации на сервере авторизации:</p>
+<ul>
+<li>Сессии и куки.</li>
+<li>Информация о клиентах.</li>
+<li>Информация о пользователях.</li>
+</ul>
+<p>Укажем redis в качестве зависимости для сервера авторизации:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-xml" data-lang="xml"><span style="display:flex;"><span><span style="color:#f92672">&lt;dependency&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;groupId&gt;</span>org.springframework.boot<span style="color:#f92672">&lt;/groupId&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;artifactId&gt;</span>spring-boot-starter-data-redis<span style="color:#f92672">&lt;/artifactId&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;/dependency&gt;</span>
+</span></span></code></pre></div><p>и укажем подключение в application.yaml</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">redis</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">host</span>: <span style="color:#ae81ff">redis</span> <span style="color:#75715e"># или localhost, если не вносить redis в /etc/hosts</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">port</span>: <span style="color:#ae81ff">6379</span>
+</span></span></code></pre></div><h3 id="сессии-и-куки">Сессии и куки</h3>
+<p>Для настройки redis как хранилища сессий и куки, все достаточно просто. Нужно указать следующие зависимости:</p>
+<pre tabindex="0"><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-cache&lt;/artifactId&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.session&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-session-data-redis&lt;/artifactId&gt;
+    &lt;version&gt;3.4.0&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre><p>И указать в application.yaml, что информация о сессиях должна храниться в redis:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">spring</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">session</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">store-type</span>: <span style="color:#ae81ff">redis</span>
+</span></span></code></pre></div><p>Profit!</p>
+<h3 id="информация-о-клиентах">Информация о клиентах</h3>
+<p>Настройка подключения к redis будет происходить следующим образом:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@EnableRedisRepositories</span>(<span style="color:#e6db74">&#34;com.mxschardt.oauth.auth.repository&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@Configuration</span>(proxyBeanMethods <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">RedisConfig</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Value</span>(<span style="color:#e6db74">&#34;${redis.host}&#34;</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> String redisHost;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Value</span>(<span style="color:#e6db74">&#34;${redis.port}&#34;</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">int</span> redisPort;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Bean</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> LettuceConnectionFactory <span style="color:#a6e22e">redisConnectionFactory</span>() {
+</span></span><span style="display:flex;"><span>        RedisStandaloneConfiguration configuration <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> RedisStandaloneConfiguration(redisHost, redisPort);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> LettuceConnectionFactory(configuration);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>В Spring за хранение информации о клиентах отвечает интерфейс <code>RegisteredClientRepository</code>.
+При настройке сервера авторизации, мы сохраняли клиентов в <code>InMemoryRegisteredClientRepository</code>, который имплементируют методы <code>RegisteredClientRepository</code>.
+Нам же нужно предоставить свою реализацию.</p>
+<p>Начнем с класса entity, который будет сохранять информацию об одном клиенте:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@RedisHash</span>(<span style="color:#e6db74">&#34;oauth2_registered_client&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">OAuth2RegisteredClient</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Id</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> String id;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Indexed</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> String clientId;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> Instant clientIdIssuedAt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> String clientSecret;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> Instant clientSecretExpiresAt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> String clientName;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    ...
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Помечая класс как RedisHash мы будем сохранять его в redis.</p>
+<p>Создадим репозиторий для хранения клиентов:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Repository</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">OAuth2RegisteredClientRepository</span> <span style="color:#66d9ef">extends</span> CrudRepository<span style="color:#f92672">&lt;</span>OAuth2RegisteredClient, String<span style="color:#f92672">&gt;</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    OAuth2RegisteredClient <span style="color:#a6e22e">findByClientId</span>(String clientId);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Но так как по <code>RegisteredClientRepository</code> нужно возвращать <code>RegisteredClient</code>, а у нас свой собственный класс, нужно написать маппер между двумя классами:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">final</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ModelMapper</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> OAuth2RegisteredClient <span style="color:#a6e22e">convertOAuth2RegisteredClient</span>(RegisteredClient registeredClient) {
+</span></span><span style="display:flex;"><span>        OAuth2RegisteredClient.<span style="color:#a6e22e">ClientSettings</span> clientSettings <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> OAuth2RegisteredClient.<span style="color:#a6e22e">ClientSettings</span>(
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getClientSettings</span>().<span style="color:#a6e22e">isRequireProofKey</span>(),
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getClientSettings</span>().<span style="color:#a6e22e">isRequireAuthorizationConsent</span>(),
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getClientSettings</span>().<span style="color:#a6e22e">getJwkSetUrl</span>(),
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getClientSettings</span>().<span style="color:#a6e22e">getTokenEndpointAuthenticationSigningAlgorithm</span>(),
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getClientSettings</span>().<span style="color:#a6e22e">getX509CertificateSubjectDN</span>());
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        OAuth2RegisteredClient.<span style="color:#a6e22e">TokenSettings</span> tokenSettings <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> OAuth2RegisteredClient.<span style="color:#a6e22e">TokenSettings</span>(
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getTokenSettings</span>().<span style="color:#a6e22e">getAuthorizationCodeTimeToLive</span>(),
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getTokenSettings</span>().<span style="color:#a6e22e">getAccessTokenTimeToLive</span>(),
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getTokenSettings</span>().<span style="color:#a6e22e">getAccessTokenFormat</span>(),
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getTokenSettings</span>().<span style="color:#a6e22e">getDeviceCodeTimeToLive</span>(),
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getTokenSettings</span>().<span style="color:#a6e22e">isReuseRefreshTokens</span>(),
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getTokenSettings</span>().<span style="color:#a6e22e">getRefreshTokenTimeToLive</span>(),
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getTokenSettings</span>().<span style="color:#a6e22e">getIdTokenSignatureAlgorithm</span>(),
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getTokenSettings</span>().<span style="color:#a6e22e">isX509CertificateBoundAccessTokens</span>());
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> OAuth2RegisteredClient(registeredClient.<span style="color:#a6e22e">getId</span>(), registeredClient.<span style="color:#a6e22e">getClientId</span>(),
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getClientIdIssuedAt</span>(), registeredClient.<span style="color:#a6e22e">getClientSecret</span>(),
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getClientSecretExpiresAt</span>(), registeredClient.<span style="color:#a6e22e">getClientName</span>(),
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getClientAuthenticationMethods</span>(), registeredClient.<span style="color:#a6e22e">getAuthorizationGrantTypes</span>(),
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getRedirectUris</span>(), registeredClient.<span style="color:#a6e22e">getPostLogoutRedirectUris</span>(),
+</span></span><span style="display:flex;"><span>                registeredClient.<span style="color:#a6e22e">getScopes</span>(), clientSettings, tokenSettings);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    ...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>И теперь напишем собственный <code>RegisteredClientRepository</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">RedisRegisteredClientRepository</span> <span style="color:#66d9ef">implements</span> RegisteredClientRepository {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> OAuth2RegisteredClientRepository registeredClientRepository;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#a6e22e">RedisRegisteredClientRepository</span>(OAuth2RegisteredClientRepository registeredClientRepository) {
+</span></span><span style="display:flex;"><span>        Assert.<span style="color:#a6e22e">notNull</span>(registeredClientRepository, <span style="color:#e6db74">&#34;registeredClientRepository cannot be null&#34;</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">registeredClientRepository</span> <span style="color:#f92672">=</span> registeredClientRepository;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Override</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">save</span>(RegisteredClient registeredClient) {
+</span></span><span style="display:flex;"><span>        Assert.<span style="color:#a6e22e">notNull</span>(registeredClient, <span style="color:#e6db74">&#34;registeredClient cannot be null&#34;</span>);
+</span></span><span style="display:flex;"><span>        OAuth2RegisteredClient oauth2RegisteredClient <span style="color:#f92672">=</span> ModelMapper.<span style="color:#a6e22e">convertOAuth2RegisteredClient</span>(registeredClient);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">registeredClientRepository</span>.<span style="color:#a6e22e">save</span>(oauth2RegisteredClient);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Nullable</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Override</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> RegisteredClient <span style="color:#a6e22e">findById</span>(String id) {
+</span></span><span style="display:flex;"><span>        Assert.<span style="color:#a6e22e">hasText</span>(id, <span style="color:#e6db74">&#34;id cannot be empty&#34;</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">registeredClientRepository</span>.<span style="color:#a6e22e">findById</span>(id).<span style="color:#a6e22e">map</span>(ModelMapper::convertRegisteredClient).<span style="color:#a6e22e">orElse</span>(<span style="color:#66d9ef">null</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Nullable</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Override</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> RegisteredClient <span style="color:#a6e22e">findByClientId</span>(String clientId) {
+</span></span><span style="display:flex;"><span>        Assert.<span style="color:#a6e22e">hasText</span>(clientId, <span style="color:#e6db74">&#34;clientId cannot be empty&#34;</span>);
+</span></span><span style="display:flex;"><span>        OAuth2RegisteredClient oauth2RegisteredClient <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">registeredClientRepository</span>.<span style="color:#a6e22e">findByClientId</span>(clientId);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> oauth2RegisteredClient <span style="color:#f92672">!=</span> <span style="color:#66d9ef">null</span> <span style="color:#f92672">?</span> ModelMapper.<span style="color:#a6e22e">convertRegisteredClient</span>(oauth2RegisteredClient) : <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>И создадим бин следующим образом:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span> <span style="color:#a6e22e">@Bean</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> RegisteredClientRepository <span style="color:#a6e22e">registeredClientRepository</span>(OAuth2RegisteredClientRepository registeredClientRepository) {
+</span></span><span style="display:flex;"><span>    RedisRegisteredClientRepository redisRegisteredClientRepository <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">new</span> RedisRegisteredClientRepository(registeredClientRepository);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// тут можно настроить своих клиентов</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> redisRegisteredClientRepository;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Таким образом сервер авторизации теперь будет хранить и загружать конфигурацию клиентов в базе данных.</p>
+<h3 id="информация-о-пользователях">Информация о пользователях</h3>
+<p>Чтобы сохранять информацию о пользователях нужно создать <code>UserDetailsManager</code>.</p>
+<p>В целом похоже на то, что мы делали для сохранения информации о клиентах.</p>
+<p>Создадим entity:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@RedisHash</span>(<span style="color:#e6db74">&#34;oauth2_user_details&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">OAuth2User</span> <span style="color:#66d9ef">implements</span> UserDetails, CredentialsContainer {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Id</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> String username;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> String password;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> Set<span style="color:#f92672">&lt;</span>GrantedAuthority<span style="color:#f92672">&gt;</span> authorities;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> <span style="color:#66d9ef">boolean</span> accountNonExpired;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> <span style="color:#66d9ef">boolean</span> accountNonLocked;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> <span style="color:#66d9ef">boolean</span> credentialsNonExpired;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> <span style="color:#66d9ef">boolean</span> enabled;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    ...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Создадим репозиторий:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Repository</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">OAuth2UserDetailsRepository</span> <span style="color:#66d9ef">extends</span> CrudRepository<span style="color:#f92672">&lt;</span>OAuth2User, String<span style="color:#f92672">&gt;</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    OAuth2User <span style="color:#a6e22e">findByUsername</span>(String username);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Дополним маппер следующими методами:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> OAuth2User <span style="color:#a6e22e">convertOAuth2UserDetails</span>(UserDetails user) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> OAuth2User(
+</span></span><span style="display:flex;"><span>                user.<span style="color:#a6e22e">getUsername</span>(),
+</span></span><span style="display:flex;"><span>                user.<span style="color:#a6e22e">getPassword</span>(),
+</span></span><span style="display:flex;"><span>                user.<span style="color:#a6e22e">isEnabled</span>(),
+</span></span><span style="display:flex;"><span>                user.<span style="color:#a6e22e">isAccountNonExpired</span>(),
+</span></span><span style="display:flex;"><span>                user.<span style="color:#a6e22e">isCredentialsNonExpired</span>(),
+</span></span><span style="display:flex;"><span>                user.<span style="color:#a6e22e">isAccountNonLocked</span>(),
+</span></span><span style="display:flex;"><span>                user.<span style="color:#a6e22e">getAuthorities</span>()
+</span></span><span style="display:flex;"><span>        );
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> UserDetails <span style="color:#a6e22e">convertUserDetails</span>(OAuth2User user) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> User(
+</span></span><span style="display:flex;"><span>                user.<span style="color:#a6e22e">getUsername</span>(),
+</span></span><span style="display:flex;"><span>                user.<span style="color:#a6e22e">getPassword</span>(),
+</span></span><span style="display:flex;"><span>                user.<span style="color:#a6e22e">isEnabled</span>(),
+</span></span><span style="display:flex;"><span>                user.<span style="color:#a6e22e">isAccountNonExpired</span>(),
+</span></span><span style="display:flex;"><span>                user.<span style="color:#a6e22e">isCredentialsNonExpired</span>(),
+</span></span><span style="display:flex;"><span>                user.<span style="color:#a6e22e">isAccountNonLocked</span>(),
+</span></span><span style="display:flex;"><span>                user.<span style="color:#a6e22e">getAuthorities</span>()
+</span></span><span style="display:flex;"><span>        );
+</span></span><span style="display:flex;"><span>    }
+</span></span></code></pre></div><p>и напишем сервис:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">RedisUserDetailsService</span> <span style="color:#66d9ef">implements</span> UserDetailsService {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> OAuth2UserDetailsRepository userRepository;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#a6e22e">RedisUserDetailsService</span>(OAuth2UserDetailsRepository userRepository) {
+</span></span><span style="display:flex;"><span>        Assert.<span style="color:#a6e22e">notNull</span>(userRepository, <span style="color:#e6db74">&#34;registeredClientRepository cannot be null&#34;</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">userRepository</span> <span style="color:#f92672">=</span> userRepository;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Override</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> UserDetails <span style="color:#a6e22e">loadUserByUsername</span>(String username) <span style="color:#66d9ef">throws</span> UsernameNotFoundException {
+</span></span><span style="display:flex;"><span>        OAuth2User user <span style="color:#f92672">=</span> userRepository.<span style="color:#a6e22e">findByUsername</span>(username);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (user <span style="color:#f92672">==</span> <span style="color:#66d9ef">null</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> UsernameNotFoundException(username);
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> ModelMapper.<span style="color:#a6e22e">convertUserDetails</span>(user);
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">createUser</span>(UserDetails user) {
+</span></span><span style="display:flex;"><span>        Assert.<span style="color:#a6e22e">notNull</span>(user, <span style="color:#e6db74">&#34;user cannot be null&#34;</span>);
+</span></span><span style="display:flex;"><span>        OAuth2User oauth2RegisteredClient <span style="color:#f92672">=</span> ModelMapper.<span style="color:#a6e22e">convertOAuth2UserDetails</span>(user);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">userRepository</span>.<span style="color:#a6e22e">save</span>(oauth2RegisteredClient);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Но при запуске мы столкнемся с проблемой, что Spring не знает как входящие запросы распарсить как классы.
+Для этого напишем конвертеры. Один из OAuth2User в byte[], второй byte[] в OAuth2User.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@WritingConverter</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">UserToBytesConverter</span> <span style="color:#66d9ef">implements</span> Converter<span style="color:#f92672">&lt;</span>OAuth2User, <span style="color:#66d9ef">byte</span><span style="color:#f92672">[]&gt;</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> Jackson2JsonRedisSerializer<span style="color:#f92672">&lt;</span>OAuth2User<span style="color:#f92672">&gt;</span> serializer;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#a6e22e">UserToBytesConverter</span>() {
+</span></span><span style="display:flex;"><span>        ObjectMapper objectMapper <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> ObjectMapper();
+</span></span><span style="display:flex;"><span>        objectMapper.<span style="color:#a6e22e">registerModules</span>(
+</span></span><span style="display:flex;"><span>                SecurityJackson2Modules.<span style="color:#a6e22e">getModules</span>(UserToBytesConverter.<span style="color:#a6e22e">class</span>.<span style="color:#a6e22e">getClassLoader</span>()));
+</span></span><span style="display:flex;"><span>        objectMapper.<span style="color:#a6e22e">registerModules</span>(<span style="color:#66d9ef">new</span> OAuth2AuthorizationServerJackson2Module());
+</span></span><span style="display:flex;"><span>        objectMapper.<span style="color:#a6e22e">addMixIn</span>(OAuth2User.<span style="color:#a6e22e">class</span>, OAuth2UserMixin.<span style="color:#a6e22e">class</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">serializer</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">new</span> Jackson2JsonRedisSerializer<span style="color:#f92672">&lt;&gt;</span>(objectMapper, OAuth2User.<span style="color:#a6e22e">class</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Override</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">byte</span><span style="color:#f92672">[]</span> <span style="color:#a6e22e">convert</span>(OAuth2User value) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">serializer</span>.<span style="color:#a6e22e">serialize</span>(value);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@ReadingConverter</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">BytesToUserConverter</span> <span style="color:#66d9ef">implements</span> Converter<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">byte</span><span style="color:#f92672">[]</span>, OAuth2User<span style="color:#f92672">&gt;</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">final</span> Jackson2JsonRedisSerializer<span style="color:#f92672">&lt;</span>OAuth2User<span style="color:#f92672">&gt;</span> serializer;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#a6e22e">BytesToUserConverter</span>() {
+</span></span><span style="display:flex;"><span>        ObjectMapper objectMapper <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> ObjectMapper();
+</span></span><span style="display:flex;"><span>        objectMapper.<span style="color:#a6e22e">registerModules</span>(
+</span></span><span style="display:flex;"><span>                SecurityJackson2Modules.<span style="color:#a6e22e">getModules</span>(BytesToUserConverter.<span style="color:#a6e22e">class</span>.<span style="color:#a6e22e">getClassLoader</span>()));
+</span></span><span style="display:flex;"><span>        objectMapper.<span style="color:#a6e22e">registerModule</span>(<span style="color:#66d9ef">new</span> OAuth2AuthorizationServerJackson2Module());
+</span></span><span style="display:flex;"><span>        objectMapper.<span style="color:#a6e22e">addMixIn</span>(OAuth2User.<span style="color:#a6e22e">class</span>, OAuth2UserMixin.<span style="color:#a6e22e">class</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">serializer</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">new</span> Jackson2JsonRedisSerializer<span style="color:#f92672">&lt;&gt;</span>(objectMapper, OAuth2User.<span style="color:#a6e22e">class</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Override</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> OAuth2User <span style="color:#a6e22e">convert</span>(<span style="color:#66d9ef">byte</span><span style="color:#f92672">[]</span> value) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">serializer</span>.<span style="color:#a6e22e">deserialize</span>(value);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>и нужно определить Mixin для того, чтобы Spring мог корректно создать OAuth2User:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@JsonTypeInfo</span>(use <span style="color:#f92672">=</span> JsonTypeInfo.<span style="color:#a6e22e">Id</span>.<span style="color:#a6e22e">CLASS</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">abstract</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">OAuth2UserMixin</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@JsonCreator</span>
+</span></span><span style="display:flex;"><span>    OAuth2UserMixin(<span style="color:#a6e22e">@JsonProperty</span>(<span style="color:#e6db74">&#34;username&#34;</span>) String username,
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">@JsonProperty</span>(<span style="color:#e6db74">&#34;password&#34;</span>) String password,
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">@JsonProperty</span>(<span style="color:#e6db74">&#34;enabled&#34;</span>) <span style="color:#66d9ef">boolean</span> enabled,
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">@JsonProperty</span>(<span style="color:#e6db74">&#34;accountNonExpired&#34;</span>) <span style="color:#66d9ef">boolean</span> accountNonExpired,
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">@JsonProperty</span>(<span style="color:#e6db74">&#34;credentialsNonExpired&#34;</span>) <span style="color:#66d9ef">boolean</span> credentialsNonExpired,
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">@JsonProperty</span>(<span style="color:#e6db74">&#34;accountNonLocked&#34;</span>) <span style="color:#66d9ef">boolean</span> accountNonLocked,
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">@JsonProperty</span>(<span style="color:#e6db74">&#34;authorities&#34;</span>) Collection<span style="color:#f92672">&lt;</span>String<span style="color:#f92672">&gt;</span> authoroties) {
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>и зарегистрировать конвертеры для использования Spring&rsquo;ом в RedisConfig:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span> <span style="color:#a6e22e">@Bean</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> RedisCustomConversions <span style="color:#a6e22e">redisCustomConversions</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> RedisCustomConversions(Arrays.<span style="color:#a6e22e">asList</span>(
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">new</span> BytesToUserConverter(),
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">new</span> UserToBytesConverter()
+</span></span><span style="display:flex;"><span>    ));
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Таким же образом было настроено хранения и других элементов: AuthorizationCodeGrantAuthorization, ClientCredentialsGrantAuthorization, DeviceCodeAuthorization, TokenExchangeGrantAuthorization и UserConsent.</p>
+<h2 id="prod--deploy-с-помощью-docker">Prod &amp; Deploy с помощью Docker</h2>
+<p>Для удобства использования jar файлов, настроим каждому сервису постоянное имя, без версии:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-xml" data-lang="xml"><span style="display:flex;"><span><span style="color:#f92672">&lt;build&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;finalName&gt;</span>wewe-auth<span style="color:#f92672">&lt;/finalName&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    ...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;/build&gt;</span>
+</span></span></code></pre></div><p>Для каждого сервера создадим свой Dockerfile, который будет запускать уже собранный jar файл с указанным профилем &ldquo;prod&rdquo;. Настройка сервера авторизации будет выглядеть как указано ниже. Аналогично настраивается сервер ресурсов и клиент.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-dockerfile" data-lang="dockerfile"><span style="display:flex;"><span><span style="color:#66d9ef">FROM</span><span style="color:#e6db74"> eclipse-temurin:23</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">COPY</span> target/wewe-auth.jar wewe-auth.jar<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">ENTRYPOINT</span> [<span style="color:#e6db74">&#34;java&#34;</span>,<span style="color:#e6db74">&#34;-Dspring.profiles.active=prod&#34;</span>,<span style="color:#e6db74">&#34;-jar&#34;</span>,<span style="color:#e6db74">&#34;/wewe-auth.jar&#34;</span>]<span style="color:#960050;background-color:#1e0010">
+</span></span></span></code></pre></div><p>и создадим общий Docker-Compose файл:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">services</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">wewe-auth</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">build</span>: <span style="color:#ae81ff">auth</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">ports</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#e6db74">&#34;9001:9001&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">depends_on</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">redis</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">wewe-resource</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">build</span>: <span style="color:#ae81ff">resource</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">depends_on</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">wewe-auth</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">wewe-client</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">build</span>: <span style="color:#ae81ff">client</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">depends_on</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">wewe-auth</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">wewe-resource</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">ports</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#e6db74">&#34;8080:8080&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">environment</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e"># TODO: вынести в docker secrets</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">CLIENT_SECRET</span>: <span style="color:#e6db74">&#34;{noop}secret&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">redis</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">image</span>: <span style="color:#ae81ff">redis</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">restart</span>: <span style="color:#ae81ff">always</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">ports</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#e6db74">&#34;6379&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">volumes</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">redis-data:/data</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">volumes</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">redis-data</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">driver</span>: <span style="color:#ae81ff">local</span>
+</span></span></code></pre></div><p>Благодаря внутреннему dns докера запросы будут выполняться корректно, без дополнительной настройки, как они выполнялись при разработке.</p>
+<p>Решение устанавливать https соединение между контейнерами кажется неоправданным, так как они сильно изолированы от внешней сети, и при этом скорость запросов замедлиться.</p>
+<p>Для установки https содединения между конечным пользователем и сервером, на котором находится данное решение, можно настроить с помощью reverse-proxy в виде Nginx.</p>
+
+</article>
+
+            </div>
+        </main>
+    </body></html>

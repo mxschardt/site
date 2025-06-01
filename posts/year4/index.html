@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ru-ru"><head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+     <meta name="description" content="Программирование. 7 Семестр
+Реализация OAuth 2.0 &#43; OpenID Connect с использованием Spring Boot, JWT и Redis
+Лабораторная работа направлена на глубокое изучение архитектуры OAuth 2.0 и OpenID Connect (OIDC) с флоу
+Authorization Code Flow и Proof Key for Code Exchange (PKCE). Нужно создать как минимум три приложения с
+использованием Spring Boot для моделирования взаимодействий между клиентом (Client), сервером авторизации
+(Authorization Server) и сервером ресурсов (Resource Server).
+Отчет | Исходный Код">  
+
+    <title>
+      
+        4 Курс
+      
+    </title>
+
+
+
+    <link rel="shortcut icon" type="image/x-icon" href="../../uni-portfolio-site/" />
+    
+    
+    
+    <link rel="stylesheet" href="https://mxschardt.github.io/uni-portfolio-site/css/main.571f38b6e2a29120873a1adc44f3b86346a78a9782bc5f1caf418e00723a7355943dd28d03bfb508dd13a1d53ef231c02912b687f6aab373021a4a5dd651837e.css" integrity="sha512-Vx84tuKikSCHOhrcRPO4Y0anipeCvF8cr0GOAHI6c1WUPdKNA7&#43;1CN0TodU&#43;8jHAKRK2h/aqs3MCGkpd1lGDfg==" />
+    
+
+    
+
+  </head>
+<body a="light">
+        <main class="page-content" aria-label="Content">
+            <div class="w">
+                <div class="post-meta">
+                    <a href="https://mxschardt.github.io/uni-portfolio-site/">Домой</a>
+
+                    <p>
+                        <time datetime="2021-12-20 14:55:50 &#43;0300 MSK">
+                            
+                        </time>
+                    </p>
+                </div>
+
+<header>
+    <h1>Портфолио</h1></header>
+
+<h2 id="программирование-7-семестр">Программирование. 7 Семестр</h2>
+<h3 id="реализация-oauth-20--openid-connect-с-использованием-spring-boot-jwt-и-redis">Реализация OAuth 2.0 + OpenID Connect с использованием Spring Boot, JWT и Redis</h3>
+<p><em>Лабораторная работа направлена на глубокое изучение архитектуры OAuth 2.0 и OpenID Connect (OIDC) с флоу
+Authorization Code Flow и Proof Key for Code Exchange (PKCE). Нужно создать как минимум три приложения с
+использованием Spring Boot для моделирования взаимодействий между клиентом (Client), сервером авторизации
+(Authorization Server) и сервером ресурсов (Resource Server).</em></p>
+<p><a href="../../posts/prog7">Отчет</a> | <a href="https://github.com/mxschardt/spring-oauth2">Исходный Код</a></p>
+
+
+
+
+
+
+
+
+
+
+<h2>IT-рекрутмент</h2>
+
+
+
+
+
+
+
+
+<a href="../../4/IT-%d1%80%d0%b5%d0%ba%d1%80%d1%83%d1%82%d0%bc%d0%b5%d0%bd%d1%82/%d0%9b%d0%b0%d0%b1%d0%be%d1%80%d0%b0%d1%82%d0%be%d1%80%d0%bd%d0%b0%d1%8f%20%d1%80%d0%b0%d0%b1%d0%be%d1%82%d0%b0%201-2&#43;.docx">Лабораторная работа 1-2&#43;.docx</a><br>
+
+
+
+<a href="../../4/IT-%d1%80%d0%b5%d0%ba%d1%80%d1%83%d1%82%d0%bc%d0%b5%d0%bd%d1%82/%d0%9b%d0%b0%d0%b1%d0%be%d1%80%d0%b0%d1%82%d0%be%d1%80%d0%bd%d0%b0%d1%8f%20%d1%80%d0%b0%d0%b1%d0%be%d1%82%d0%b0%203&#43;.docx">Лабораторная работа 3&#43;.docx</a><br>
+
+
+
+<a href="../../4/IT-%d1%80%d0%b5%d0%ba%d1%80%d1%83%d1%82%d0%bc%d0%b5%d0%bd%d1%82/%d0%9b%d0%b0%d0%b1%d0%be%d1%80%d0%b0%d1%82%d0%be%d1%80%d0%bd%d0%b0%d1%8f%20%d1%80%d0%b0%d0%b1%d0%be%d1%82%d0%b0%204&#43;.docx">Лабораторная работа 4&#43;.docx</a><br>
+
+
+
+<a href="../../4/IT-%d1%80%d0%b5%d0%ba%d1%80%d1%83%d1%82%d0%bc%d0%b5%d0%bd%d1%82/%d0%9b%d0%b0%d0%b1%d0%be%d1%80%d0%b0%d1%82%d0%be%d1%80%d0%bd%d0%b0%d1%8f%20%d1%80%d0%b0%d0%b1%d0%be%d1%82%d0%b0%205&#43;.pdf">Лабораторная работа 5&#43;.pdf</a><br>
+
+
+
+<a href="../../4/IT-%d1%80%d0%b5%d0%ba%d1%80%d1%83%d1%82%d0%bc%d0%b5%d0%bd%d1%82/%d0%9b%d0%b0%d0%b1%d0%be%d1%80%d0%b0%d1%82%d0%be%d1%80%d0%bd%d0%b0%d1%8f%20%d1%80%d0%b0%d0%b1%d0%be%d1%82%d0%b0%206-7&#43;.docx">Лабораторная работа 6-7&#43;.docx</a><br>
+
+
+
+<a href="../../4/IT-%d1%80%d0%b5%d0%ba%d1%80%d1%83%d1%82%d0%bc%d0%b5%d0%bd%d1%82/%d0%9b%d0%b0%d0%b1%d0%be%d1%80%d0%b0%d1%82%d0%be%d1%80%d0%bd%d0%b0%d1%8f%20%d1%80%d0%b0%d0%b1%d0%be%d1%82%d0%b0%208-9&#43;.pptx">Лабораторная работа 8-9&#43;.pptx</a><br>
+
+
+
+
+
+<h2>Английский</h2>
+
+
+
+
+
+
+
+
+<a href="../../4/%d0%90%d0%bd%d0%b3%d0%bb%d0%b8%d0%b9%d1%81%d0%ba%d0%b8%d0%b9/About%20AI.docx">About AI.docx</a><br>
+
+
+
+
+
+<h2>Инженерия знаний</h2>
+
+
+
+
+
+
+
+
+<a href="../../4/%d0%98%d0%bd%d0%b6%d0%b5%d0%bd%d0%b5%d1%80%d0%b8%d1%8f%20%d0%b7%d0%bd%d0%b0%d0%bd%d0%b8%d0%b9/%d0%9b%d0%b0%d0%b1%d0%be%d1%80%d0%b0%d1%82%d0%be%d1%80%d0%bd%d0%b0%d1%8f%20%d1%80%d0%b0%d0%b1%d0%be%d1%82%d0%b0%20%e2%84%961.docx">Лабораторная работа №1.docx</a><br>
+
+
+
+<a href="../../4/%d0%98%d0%bd%d0%b6%d0%b5%d0%bd%d0%b5%d1%80%d0%b8%d1%8f%20%d0%b7%d0%bd%d0%b0%d0%bd%d0%b8%d0%b9/%d0%9b%d0%b0%d0%b1%d0%be%d1%80%d0%b0%d1%82%d0%be%d1%80%d0%bd%d0%b0%d1%8f%20%d1%80%d0%b0%d0%b1%d0%be%d1%82%d0%b0%20%e2%84%962.docx">Лабораторная работа №2.docx</a><br>
+
+
+
+<a href="../../4/%d0%98%d0%bd%d0%b6%d0%b5%d0%bd%d0%b5%d1%80%d0%b8%d1%8f%20%d0%b7%d0%bd%d0%b0%d0%bd%d0%b8%d0%b9/%d0%9b%d0%b0%d0%b1%d0%be%d1%80%d0%b0%d1%82%d0%be%d1%80%d0%bd%d0%b0%d1%8f%20%d1%80%d0%b0%d0%b1%d0%be%d1%82%d0%b0%20%e2%84%963.docx">Лабораторная работа №3.docx</a><br>
+
+
+
+<a href="../../4/%d0%98%d0%bd%d0%b6%d0%b5%d0%bd%d0%b5%d1%80%d0%b8%d1%8f%20%d0%b7%d0%bd%d0%b0%d0%bd%d0%b8%d0%b9/%d0%9b%d0%b0%d0%b1%d0%be%d1%80%d0%b0%d1%82%d0%be%d1%80%d0%bd%d0%b0%d1%8f%20%d1%80%d0%b0%d0%b1%d0%be%d1%82%d0%b0%20%e2%84%964.docx">Лабораторная работа №4.docx</a><br>
+
+
+
+
+
+<h2>Информационные средства и технологии инженерных и научных расчетов</h2>
+
+
+
+
+
+
+
+
+<a href="../../4/%d0%98%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%81%d1%80%d0%b5%d0%b4%d1%81%d1%82%d0%b2%d0%b0%20%d0%b8%20%d1%82%d0%b5%d1%85%d0%bd%d0%be%d0%bb%d0%be%d0%b3%d0%b8%d0%b8%20%d0%b8%d0%bd%d0%b6%d0%b5%d0%bd%d0%b5%d1%80%d0%bd%d1%8b%d1%85%20%d0%b8%20%d0%bd%d0%b0%d1%83%d1%87%d0%bd%d1%8b%d1%85%20%d1%80%d0%b0%d1%81%d1%87%d0%b5%d1%82%d0%be%d0%b2/%d0%9b%d0%a02.xlsx">ЛР2.xlsx</a><br>
+
+
+
+<h3>ЛР5</h3>
+
+
+
+
+
+
+
+
+
+
+<a href="../../4/%d0%98%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%81%d1%80%d0%b5%d0%b4%d1%81%d1%82%d0%b2%d0%b0%20%d0%b8%20%d1%82%d0%b5%d1%85%d0%bd%d0%be%d0%bb%d0%be%d0%b3%d0%b8%d0%b8%20%d0%b8%d0%bd%d0%b6%d0%b5%d0%bd%d0%b5%d1%80%d0%bd%d1%8b%d1%85%20%d0%b8%20%d0%bd%d0%b0%d1%83%d1%87%d0%bd%d1%8b%d1%85%20%d1%80%d0%b0%d1%81%d1%87%d0%b5%d1%82%d0%be%d0%b2/%d0%a8%d0%b0%d1%80%d0%b4%d1%82%20%d0%9c.%d0%90.,%20%d0%b3%d1%80.1.1,%20%d0%9b%d0%a0%201.docx">Шардт М.А., гр.1.1, ЛР 1.docx</a><br>
+
+
+
+<a href="../../4/%d0%98%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%81%d1%80%d0%b5%d0%b4%d1%81%d1%82%d0%b2%d0%b0%20%d0%b8%20%d1%82%d0%b5%d1%85%d0%bd%d0%be%d0%bb%d0%be%d0%b3%d0%b8%d0%b8%20%d0%b8%d0%bd%d0%b6%d0%b5%d0%bd%d0%b5%d1%80%d0%bd%d1%8b%d1%85%20%d0%b8%20%d0%bd%d0%b0%d1%83%d1%87%d0%bd%d1%8b%d1%85%20%d1%80%d0%b0%d1%81%d1%87%d0%b5%d1%82%d0%be%d0%b2/%d0%a8%d0%b0%d1%80%d0%b4%d1%82%20%d0%9c.%d0%90.,%20%d0%b3%d1%80.1.1,%20%d0%9b%d0%a0%202.docx">Шардт М.А., гр.1.1, ЛР 2.docx</a><br>
+
+
+
+<a href="../../4/%d0%98%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%81%d1%80%d0%b5%d0%b4%d1%81%d1%82%d0%b2%d0%b0%20%d0%b8%20%d1%82%d0%b5%d1%85%d0%bd%d0%be%d0%bb%d0%be%d0%b3%d0%b8%d0%b8%20%d0%b8%d0%bd%d0%b6%d0%b5%d0%bd%d0%b5%d1%80%d0%bd%d1%8b%d1%85%20%d0%b8%20%d0%bd%d0%b0%d1%83%d1%87%d0%bd%d1%8b%d1%85%20%d1%80%d0%b0%d1%81%d1%87%d0%b5%d1%82%d0%be%d0%b2/%d0%a8%d0%b0%d1%80%d0%b4%d1%82%20%d0%9c.%d0%90.,%20%d0%b3%d1%80.1.1,%20%d0%9b%d0%a0%205.docx">Шардт М.А., гр.1.1, ЛР 5.docx</a><br>
+
+
+
+
+
+<h2>Информационные технологии оценки персонала</h2>
+
+
+
+
+
+
+
+
+<a href="../../4/%d0%98%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%82%d0%b5%d1%85%d0%bd%d0%be%d0%bb%d0%be%d0%b3%d0%b8%d0%b8%20%d0%be%d1%86%d0%b5%d0%bd%d0%ba%d0%b8%20%d0%bf%d0%b5%d1%80%d1%81%d0%be%d0%bd%d0%b0%d0%bb%d0%b0/%d0%9b%d0%b0%d0%b1%201-2.docx">Лаб 1-2.docx</a><br>
+
+
+
+<a href="../../4/%d0%98%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%82%d0%b5%d1%85%d0%bd%d0%be%d0%bb%d0%be%d0%b3%d0%b8%d0%b8%20%d0%be%d1%86%d0%b5%d0%bd%d0%ba%d0%b8%20%d0%bf%d0%b5%d1%80%d1%81%d0%be%d0%bd%d0%b0%d0%bb%d0%b0/%d0%9b%d0%b0%d0%b1%203-4.docx">Лаб 3-4.docx</a><br>
+
+
+
+<a href="../../4/%d0%98%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%82%d0%b5%d1%85%d0%bd%d0%be%d0%bb%d0%be%d0%b3%d0%b8%d0%b8%20%d0%be%d1%86%d0%b5%d0%bd%d0%ba%d0%b8%20%d0%bf%d0%b5%d1%80%d1%81%d0%be%d0%bd%d0%b0%d0%bb%d0%b0/%d0%9b%d0%b0%d0%b1%207.docx">Лаб 7.docx</a><br>
+
+
+
+<a href="../../4/%d0%98%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%82%d0%b5%d1%85%d0%bd%d0%be%d0%bb%d0%be%d0%b3%d0%b8%d0%b8%20%d0%be%d1%86%d0%b5%d0%bd%d0%ba%d0%b8%20%d0%bf%d0%b5%d1%80%d1%81%d0%be%d0%bd%d0%b0%d0%bb%d0%b0/%d0%9b%d0%b0%d0%b1%d0%be%d1%80%d0%b0%d1%82%d0%be%d1%80%d0%bd%d0%b0%d1%8f%20%d1%80%d0%b0%d0%b1%d0%be%d1%82%d0%b0%205-6&#43;.docx">Лабораторная работа 5-6&#43;.docx</a><br>
+
+
+
+
+
+<h2>Курсовая</h2>
+
+
+
+
+
+
+
+
+<a href="../../4/%d0%9a%d1%83%d1%80%d1%81%d0%be%d0%b2%d0%b0%d1%8f/%d0%9a%d1%83%d1%80%d1%81%d0%be%d0%b2%d0%b0%d1%8f%20%d1%80%d0%b0%d0%b1%d0%be%d1%82%d0%b0%20%d0%a8%d0%b0%d1%80%d0%b4%d1%82%20%d0%9c.%d0%90..docx.pdf">Курсовая работа Шардт М.А..docx.pdf</a><br>
+
+
+
+
+
+<h2>Мировые информационные ресурсы и цифровые библиотеки</h2>
+
+
+
+
+
+
+
+
+<a href="../../4/%d0%9c%d0%b8%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b8%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%80%d0%b5%d1%81%d1%83%d1%80%d1%81%d1%8b%20%d0%b8%20%d1%86%d0%b8%d1%84%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b1%d0%b8%d0%b1%d0%bb%d0%b8%d0%be%d1%82%d0%b5%d0%ba%d0%b8/%d0%92%d0%a1%d0%a0%2011.1.docx">ВСР 11.1.docx</a><br>
+
+
+
+<a href="../../4/%d0%9c%d0%b8%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b8%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%80%d0%b5%d1%81%d1%83%d1%80%d1%81%d1%8b%20%d0%b8%20%d1%86%d0%b8%d1%84%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b1%d0%b8%d0%b1%d0%bb%d0%b8%d0%be%d1%82%d0%b5%d0%ba%d0%b8/%d0%92%d0%a1%d0%a0%203.docx">ВСР 3.docx</a><br>
+
+
+
+<a href="../../4/%d0%9c%d0%b8%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b8%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%80%d0%b5%d1%81%d1%83%d1%80%d1%81%d1%8b%20%d0%b8%20%d1%86%d0%b8%d1%84%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b1%d0%b8%d0%b1%d0%bb%d0%b8%d0%be%d1%82%d0%b5%d0%ba%d0%b8/%d0%92%d0%a1%d0%a0%204.pptx">ВСР 4.pptx</a><br>
+
+
+
+<a href="../../4/%d0%9c%d0%b8%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b8%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%80%d0%b5%d1%81%d1%83%d1%80%d1%81%d1%8b%20%d0%b8%20%d1%86%d0%b8%d1%84%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b1%d0%b8%d0%b1%d0%bb%d0%b8%d0%be%d1%82%d0%b5%d0%ba%d0%b8/%d0%92%d0%a1%d0%a0%205.1.docx">ВСР 5.1.docx</a><br>
+
+
+
+<a href="../../4/%d0%9c%d0%b8%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b8%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%80%d0%b5%d1%81%d1%83%d1%80%d1%81%d1%8b%20%d0%b8%20%d1%86%d0%b8%d1%84%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b1%d0%b8%d0%b1%d0%bb%d0%b8%d0%be%d1%82%d0%b5%d0%ba%d0%b8/%d0%92%d0%a1%d0%a0%206.1.docx">ВСР 6.1.docx</a><br>
+
+
+
+<a href="../../4/%d0%9c%d0%b8%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b8%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%80%d0%b5%d1%81%d1%83%d1%80%d1%81%d1%8b%20%d0%b8%20%d1%86%d0%b8%d1%84%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b1%d0%b8%d0%b1%d0%bb%d0%b8%d0%be%d1%82%d0%b5%d0%ba%d0%b8/%d0%92%d0%a1%d0%a0%208.1.docx">ВСР 8.1.docx</a><br>
+
+
+
+<a href="../../4/%d0%9c%d0%b8%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b8%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%80%d0%b5%d1%81%d1%83%d1%80%d1%81%d1%8b%20%d0%b8%20%d1%86%d0%b8%d1%84%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b1%d0%b8%d0%b1%d0%bb%d0%b8%d0%be%d1%82%d0%b5%d0%ba%d0%b8/%d0%98%d0%a1%d0%a0%201.docx">ИСР 1.docx</a><br>
+
+
+
+<a href="../../4/%d0%9c%d0%b8%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b8%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%80%d0%b5%d1%81%d1%83%d1%80%d1%81%d1%8b%20%d0%b8%20%d1%86%d0%b8%d1%84%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b1%d0%b8%d0%b1%d0%bb%d0%b8%d0%be%d1%82%d0%b5%d0%ba%d0%b8/%d0%98%d0%a1%d0%a0%2010.docx">ИСР 10.docx</a><br>
+
+
+
+<a href="../../4/%d0%9c%d0%b8%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b8%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%80%d0%b5%d1%81%d1%83%d1%80%d1%81%d1%8b%20%d0%b8%20%d1%86%d0%b8%d1%84%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b1%d0%b8%d0%b1%d0%bb%d0%b8%d0%be%d1%82%d0%b5%d0%ba%d0%b8/%d0%98%d0%a1%d0%a0%2011.docx">ИСР 11.docx</a><br>
+
+
+
+<a href="../../4/%d0%9c%d0%b8%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b8%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%80%d0%b5%d1%81%d1%83%d1%80%d1%81%d1%8b%20%d0%b8%20%d1%86%d0%b8%d1%84%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b1%d0%b8%d0%b1%d0%bb%d0%b8%d0%be%d1%82%d0%b5%d0%ba%d0%b8/%d0%98%d0%a1%d0%a0%204.docx">ИСР 4.docx</a><br>
+
+
+
+<a href="../../4/%d0%9c%d0%b8%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b8%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%80%d0%b5%d1%81%d1%83%d1%80%d1%81%d1%8b%20%d0%b8%20%d1%86%d0%b8%d1%84%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b1%d0%b8%d0%b1%d0%bb%d0%b8%d0%be%d1%82%d0%b5%d0%ba%d0%b8/%d0%98%d0%a1%d0%a0%206.docx">ИСР 6.docx</a><br>
+
+
+
+<a href="../../4/%d0%9c%d0%b8%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b8%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%80%d0%b5%d1%81%d1%83%d1%80%d1%81%d1%8b%20%d0%b8%20%d1%86%d0%b8%d1%84%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b1%d0%b8%d0%b1%d0%bb%d0%b8%d0%be%d1%82%d0%b5%d0%ba%d0%b8/%d0%98%d0%a1%d0%a0%207.docx">ИСР 7.docx</a><br>
+
+
+
+<a href="../../4/%d0%9c%d0%b8%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b8%d0%bd%d1%84%d0%be%d1%80%d0%bc%d0%b0%d1%86%d0%b8%d0%be%d0%bd%d0%bd%d1%8b%d0%b5%20%d1%80%d0%b5%d1%81%d1%83%d1%80%d1%81%d1%8b%20%d0%b8%20%d1%86%d0%b8%d1%84%d1%80%d0%be%d0%b2%d1%8b%d0%b5%20%d0%b1%d0%b8%d0%b1%d0%bb%d0%b8%d0%be%d1%82%d0%b5%d0%ba%d0%b8/%d0%98%d0%a1%d0%a0%208.docx">ИСР 8.docx</a><br>
+
+
+
+
+
+<h2>Научно-исследовательский проект</h2>
+
+
+
+
+
+
+
+
+<a href="../../4/%d0%9d%d0%b0%d1%83%d1%87%d0%bd%d0%be-%d0%b8%d1%81%d1%81%d0%bb%d0%b5%d0%b4%d0%be%d0%b2%d0%b0%d1%82%d0%b5%d0%bb%d1%8c%d1%81%d0%ba%d0%b8%d0%b9%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%201.1.docx">Задание 1.1.docx</a><br>
+
+
+
+<a href="../../4/%d0%9d%d0%b0%d1%83%d1%87%d0%bd%d0%be-%d0%b8%d1%81%d1%81%d0%bb%d0%b5%d0%b4%d0%be%d0%b2%d0%b0%d1%82%d0%b5%d0%bb%d1%8c%d1%81%d0%ba%d0%b8%d0%b9%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%201.2.docx">Задание 1.2.docx</a><br>
+
+
+
+<a href="../../4/%d0%9d%d0%b0%d1%83%d1%87%d0%bd%d0%be-%d0%b8%d1%81%d1%81%d0%bb%d0%b5%d0%b4%d0%be%d0%b2%d0%b0%d1%82%d0%b5%d0%bb%d1%8c%d1%81%d0%ba%d0%b8%d0%b9%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%201.3.docx">Задание 1.3.docx</a><br>
+
+
+
+<a href="../../4/%d0%9d%d0%b0%d1%83%d1%87%d0%bd%d0%be-%d0%b8%d1%81%d1%81%d0%bb%d0%b5%d0%b4%d0%be%d0%b2%d0%b0%d1%82%d0%b5%d0%bb%d1%8c%d1%81%d0%ba%d0%b8%d0%b9%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%201.4.pptx">Задание 1.4.pptx</a><br>
+
+
+
+<a href="../../4/%d0%9d%d0%b0%d1%83%d1%87%d0%bd%d0%be-%d0%b8%d1%81%d1%81%d0%bb%d0%b5%d0%b4%d0%be%d0%b2%d0%b0%d1%82%d0%b5%d0%bb%d1%8c%d1%81%d0%ba%d0%b8%d0%b9%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%203.1.docx">Задание 3.1.docx</a><br>
+
+
+
+<a href="../../4/%d0%9d%d0%b0%d1%83%d1%87%d0%bd%d0%be-%d0%b8%d1%81%d1%81%d0%bb%d0%b5%d0%b4%d0%be%d0%b2%d0%b0%d1%82%d0%b5%d0%bb%d1%8c%d1%81%d0%ba%d0%b8%d0%b9%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%203.1.pptx">Задание 3.1.pptx</a><br>
+
+
+
+<a href="../../4/%d0%9d%d0%b0%d1%83%d1%87%d0%bd%d0%be-%d0%b8%d1%81%d1%81%d0%bb%d0%b5%d0%b4%d0%be%d0%b2%d0%b0%d1%82%d0%b5%d0%bb%d1%8c%d1%81%d0%ba%d0%b8%d0%b9%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%203.2.docx">Задание 3.2.docx</a><br>
+
+
+
+<a href="../../4/%d0%9d%d0%b0%d1%83%d1%87%d0%bd%d0%be-%d0%b8%d1%81%d1%81%d0%bb%d0%b5%d0%b4%d0%be%d0%b2%d0%b0%d1%82%d0%b5%d0%bb%d1%8c%d1%81%d0%ba%d0%b8%d0%b9%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%203.2.pptx">Задание 3.2.pptx</a><br>
+
+
+
+<a href="../../4/%d0%9d%d0%b0%d1%83%d1%87%d0%bd%d0%be-%d0%b8%d1%81%d1%81%d0%bb%d0%b5%d0%b4%d0%be%d0%b2%d0%b0%d1%82%d0%b5%d0%bb%d1%8c%d1%81%d0%ba%d0%b8%d0%b9%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%205.1.pptx">Задание 5.1.pptx</a><br>
+
+
+
+<a href="../../4/%d0%9d%d0%b0%d1%83%d1%87%d0%bd%d0%be-%d0%b8%d1%81%d1%81%d0%bb%d0%b5%d0%b4%d0%be%d0%b2%d0%b0%d1%82%d0%b5%d0%bb%d1%8c%d1%81%d0%ba%d0%b8%d0%b9%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%206.1.pptx">Задание 6.1.pptx</a><br>
+
+
+
+<a href="../../4/%d0%9d%d0%b0%d1%83%d1%87%d0%bd%d0%be-%d0%b8%d1%81%d1%81%d0%bb%d0%b5%d0%b4%d0%be%d0%b2%d0%b0%d1%82%d0%b5%d0%bb%d1%8c%d1%81%d0%ba%d0%b8%d0%b9%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%206.2.docx">Задание 6.2.docx</a><br>
+
+
+
+<a href="../../4/%d0%9d%d0%b0%d1%83%d1%87%d0%bd%d0%be-%d0%b8%d1%81%d1%81%d0%bb%d0%b5%d0%b4%d0%be%d0%b2%d0%b0%d1%82%d0%b5%d0%bb%d1%8c%d1%81%d0%ba%d0%b8%d0%b9%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%206.3.docx">Задание 6.3.docx</a><br>
+
+
+
+<a href="../../4/%d0%9d%d0%b0%d1%83%d1%87%d0%bd%d0%be-%d0%b8%d1%81%d1%81%d0%bb%d0%b5%d0%b4%d0%be%d0%b2%d0%b0%d1%82%d0%b5%d0%bb%d1%8c%d1%81%d0%ba%d0%b8%d0%b9%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%207.1.docx">Задание 7.1.docx</a><br>
+
+
+
+<a href="../../4/%d0%9d%d0%b0%d1%83%d1%87%d0%bd%d0%be-%d0%b8%d1%81%d1%81%d0%bb%d0%b5%d0%b4%d0%be%d0%b2%d0%b0%d1%82%d0%b5%d0%bb%d1%8c%d1%81%d0%ba%d0%b8%d0%b9%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%207.2.docx">Задание 7.2.docx</a><br>
+
+
+
+
+
+<h2>Практика</h2>
+
+
+
+
+
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/01%20%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%20%d0%bd%d0%b0%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d1%83.docx">01 Задание на практику.docx</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/02%20%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%20%d0%bd%d0%b0%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d1%83.pdf">02 Задание на практику.pdf</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/03%20%d0%9e%d1%82%d1%87%d0%b5%d1%82%20%d0%bf%d0%be%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b5.docx">03 Отчет по практике.docx</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/05%20%d0%98%d0%a1%d0%a0.docx">05 ИСР.docx</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/06%20%d0%98%d0%a1%d0%a0.pdf">06 ИСР.pdf</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/07%20%d0%92%d0%a1%d0%a0.docx">07 ВСР.docx</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/08%20%d0%92%d0%a1%d0%a0.pdf">08 ВСР.pdf</a><br>
+
+
+
+
+
+<h2>Преддипломная практика</h2>
+
+
+
+
+
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b5%d0%b4%d0%b4%d0%b8%d0%bf%d0%bb%d0%be%d0%bc%d0%bd%d0%b0%d1%8f%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%201.1.%20%d0%98%d0%a1%d0%a0.docx">Задание 1.1. ИСР.docx</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b5%d0%b4%d0%b4%d0%b8%d0%bf%d0%bb%d0%be%d0%bc%d0%bd%d0%b0%d1%8f%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%201.1.%20%d0%98%d0%a1%d0%a0.pdf">Задание 1.1. ИСР.pdf</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b5%d0%b4%d0%b4%d0%b8%d0%bf%d0%bb%d0%be%d0%bc%d0%bd%d0%b0%d1%8f%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%201.2.%20%d0%98%d0%a1%d0%a0.pptx">Задание 1.2. ИСР.pptx</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b5%d0%b4%d0%b4%d0%b8%d0%bf%d0%bb%d0%be%d0%bc%d0%bd%d0%b0%d1%8f%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%201.3%20%d0%98%d0%a1%d0%a0.pdf">Задание 1.3 ИСР.pdf</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b5%d0%b4%d0%b4%d0%b8%d0%bf%d0%bb%d0%be%d0%bc%d0%bd%d0%b0%d1%8f%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%201.4%20%d0%98%d0%a1%d0%a0.docx">Задание 1.4 ИСР.docx</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b5%d0%b4%d0%b4%d0%b8%d0%bf%d0%bb%d0%be%d0%bc%d0%bd%d0%b0%d1%8f%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%201.4%20%d0%98%d0%a1%d0%a0.pdf">Задание 1.4 ИСР.pdf</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b5%d0%b4%d0%b4%d0%b8%d0%bf%d0%bb%d0%be%d0%bc%d0%bd%d0%b0%d1%8f%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%201.6%20%d0%98%d0%a1%d0%a0.docx">Задание 1.6 ИСР.docx</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b5%d0%b4%d0%b4%d0%b8%d0%bf%d0%bb%d0%be%d0%bc%d0%bd%d0%b0%d1%8f%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%201.6%20%d0%98%d0%a1%d0%a0.pdf">Задание 1.6 ИСР.pdf</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b5%d0%b4%d0%b4%d0%b8%d0%bf%d0%bb%d0%be%d0%bc%d0%bd%d0%b0%d1%8f%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%202.1%20%d0%92%d0%a1%d0%a0.docx">Задание 2.1 ВСР.docx</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b5%d0%b4%d0%b4%d0%b8%d0%bf%d0%bb%d0%be%d0%bc%d0%bd%d0%b0%d1%8f%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%202.1%20%d0%92%d0%a1%d0%a0.pdf">Задание 2.1 ВСР.pdf</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b5%d0%b4%d0%b4%d0%b8%d0%bf%d0%bb%d0%be%d0%bc%d0%bd%d0%b0%d1%8f%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%202.2%20%d0%92%d0%a1%d0%a0.docx">Задание 2.2 ВСР.docx</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b5%d0%b4%d0%b4%d0%b8%d0%bf%d0%bb%d0%be%d0%bc%d0%bd%d0%b0%d1%8f%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/%d0%97%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%202.2%20%d0%92%d0%a1%d0%a0.pdf">Задание 2.2 ВСР.pdf</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b5%d0%b4%d0%b4%d0%b8%d0%bf%d0%bb%d0%be%d0%bc%d0%bd%d0%b0%d1%8f%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/%d0%b7%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%20%d0%bd%d0%b0%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d1%83.docx">задание на практику.docx</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b5%d0%b4%d0%b4%d0%b8%d0%bf%d0%bb%d0%be%d0%bc%d0%bd%d0%b0%d1%8f%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/%d0%b7%d0%b0%d0%b4%d0%b0%d0%bd%d0%b8%d0%b5%20%d0%bd%d0%b0%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d1%83.docx.pdf">задание на практику.docx.pdf</a><br>
+
+
+
+<a href="../../4/%d0%9f%d1%80%d0%b5%d0%b4%d0%b4%d0%b8%d0%bf%d0%bb%d0%be%d0%bc%d0%bd%d0%b0%d1%8f%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b0/%d0%be%d1%82%d1%87%d0%b5%d1%82%20%d0%bf%d0%be%20%d0%bf%d1%80%d0%b0%d0%ba%d1%82%d0%b8%d0%ba%d0%b5.docx">отчет по практике.docx</a><br>
+
+
+
+
+
+<h2>Управление программными проектами</h2>
+
+
+
+
+
+
+
+
+<a href="../../4/%d0%a3%d0%bf%d1%80%d0%b0%d0%b2%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5%20%d0%bf%d1%80%d0%be%d0%b3%d1%80%d0%b0%d0%bc%d0%bc%d0%bd%d1%8b%d0%bc%d0%b8%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82%d0%b0%d0%bc%d0%b8/Ansible%20%d0%9f%d1%80%d0%b5%d0%b7%d0%b5%d0%bd%d1%82%d0%b0%d1%86%d0%b8%d1%8f.pptx">Ansible Презентация.pptx</a><br>
+
+
+
+<a href="../../4/%d0%a3%d0%bf%d1%80%d0%b0%d0%b2%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5%20%d0%bf%d1%80%d0%be%d0%b3%d1%80%d0%b0%d0%bc%d0%bc%d0%bd%d1%8b%d0%bc%d0%b8%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82%d0%b0%d0%bc%d0%b8/Ansible%20%d0%a2%d0%b5%d0%ba%d1%81%d1%82.docx">Ansible Текст.docx</a><br>
+
+
+
+<h3>ВСР-ИСР</h3>
+
+
+
+
+
+
+
+
+<a href="../../4/%d0%a3%d0%bf%d1%80%d0%b0%d0%b2%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5%20%d0%bf%d1%80%d0%be%d0%b3%d1%80%d0%b0%d0%bc%d0%bc%d0%bd%d1%8b%d0%bc%d0%b8%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82%d0%b0%d0%bc%d0%b8/%d0%92%d0%a1%d0%a0-%d0%98%d0%a1%d0%a0/%d0%92%d0%a1%d0%a0%202.docx">ВСР 2.docx</a><br>
+
+
+
+<a href="../../4/%d0%a3%d0%bf%d1%80%d0%b0%d0%b2%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5%20%d0%bf%d1%80%d0%be%d0%b3%d1%80%d0%b0%d0%bc%d0%bc%d0%bd%d1%8b%d0%bc%d0%b8%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82%d0%b0%d0%bc%d0%b8/%d0%92%d0%a1%d0%a0-%d0%98%d0%a1%d0%a0/%d0%a8%d0%b0%d1%80%d0%b4%d1%82%20%d0%9c.%d0%90.%20%d0%92%d0%a1%d0%a0%203.docx">Шардт М.А. ВСР 3.docx</a><br>
+
+
+
+<a href="../../4/%d0%a3%d0%bf%d1%80%d0%b0%d0%b2%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5%20%d0%bf%d1%80%d0%be%d0%b3%d1%80%d0%b0%d0%bc%d0%bc%d0%bd%d1%8b%d0%bc%d0%b8%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82%d0%b0%d0%bc%d0%b8/%d0%92%d0%a1%d0%a0-%d0%98%d0%a1%d0%a0/%d0%a8%d0%b0%d1%80%d0%b4%d1%82%20%d0%9c.%d0%90.%20%d0%98%d0%a1%d0%a0%201.docx">Шардт М.А. ИСР 1.docx</a><br>
+
+
+
+<a href="../../4/%d0%a3%d0%bf%d1%80%d0%b0%d0%b2%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5%20%d0%bf%d1%80%d0%be%d0%b3%d1%80%d0%b0%d0%bc%d0%bc%d0%bd%d1%8b%d0%bc%d0%b8%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82%d0%b0%d0%bc%d0%b8/%d0%92%d0%a1%d0%a0-%d0%98%d0%a1%d0%a0/%d0%a8%d0%b0%d1%80%d0%b4%d1%82%20%d0%9c.%d0%90.%20%d0%98%d0%a1%d0%a0%202.docx">Шардт М.А. ИСР 2.docx</a><br>
+
+
+
+<a href="../../4/%d0%a3%d0%bf%d1%80%d0%b0%d0%b2%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5%20%d0%bf%d1%80%d0%be%d0%b3%d1%80%d0%b0%d0%bc%d0%bc%d0%bd%d1%8b%d0%bc%d0%b8%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82%d0%b0%d0%bc%d0%b8/%d0%92%d0%a1%d0%a0-%d0%98%d0%a1%d0%a0/%d0%a8%d0%b0%d1%80%d0%b4%d1%82%20%d0%9c.%d0%90.,%20%d0%92%d0%a1%d0%a0%201.docx">Шардт М.А., ВСР 1.docx</a><br>
+
+
+
+<a href="../../4/%d0%a3%d0%bf%d1%80%d0%b0%d0%b2%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5%20%d0%bf%d1%80%d0%be%d0%b3%d1%80%d0%b0%d0%bc%d0%bc%d0%bd%d1%8b%d0%bc%d0%b8%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82%d0%b0%d0%bc%d0%b8/%d0%92%d0%a1%d0%a0-%d0%98%d0%a1%d0%a0/%d0%a8%d0%b0%d1%80%d0%b4%d1%82%20%d0%9c.%d0%90.,%20%d0%98%d0%a1%d0%a0%203.docx">Шардт М.А., ИСР 3.docx</a><br>
+
+
+
+
+
+<h3>ЛР</h3>
+
+
+
+
+
+
+
+
+<a href="../../4/%d0%a3%d0%bf%d1%80%d0%b0%d0%b2%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5%20%d0%bf%d1%80%d0%be%d0%b3%d1%80%d0%b0%d0%bc%d0%bc%d0%bd%d1%8b%d0%bc%d0%b8%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82%d0%b0%d0%bc%d0%b8/%d0%9b%d0%a0/%d0%a8%d0%b0%d1%80%d0%b4%d1%82%20%d0%9c.%d0%90.%20%d0%9b%d0%a0%204.docx">Шардт М.А. ЛР 4.docx</a><br>
+
+
+
+<a href="../../4/%d0%a3%d0%bf%d1%80%d0%b0%d0%b2%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5%20%d0%bf%d1%80%d0%be%d0%b3%d1%80%d0%b0%d0%bc%d0%bc%d0%bd%d1%8b%d0%bc%d0%b8%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82%d0%b0%d0%bc%d0%b8/%d0%9b%d0%a0/%d0%a8%d0%b0%d1%80%d0%b4%d1%82%20%d0%9c.%d0%90.%20%d0%9b%d0%a0%205.docx">Шардт М.А. ЛР 5.docx</a><br>
+
+
+
+<a href="../../4/%d0%a3%d0%bf%d1%80%d0%b0%d0%b2%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5%20%d0%bf%d1%80%d0%be%d0%b3%d1%80%d0%b0%d0%bc%d0%bc%d0%bd%d1%8b%d0%bc%d0%b8%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82%d0%b0%d0%bc%d0%b8/%d0%9b%d0%a0/%d0%a8%d0%b0%d1%80%d0%b4%d1%82%20%d0%9c.%d0%90.%20%d0%9b%d0%b0%d0%b1%201.%20%d0%a0%d0%b5%d0%b7%d1%8e%d0%bc%d0%b5%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82%d0%b0.docx">Шардт М.А. Лаб 1. Резюме проекта.docx</a><br>
+
+
+
+<a href="../../4/%d0%a3%d0%bf%d1%80%d0%b0%d0%b2%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5%20%d0%bf%d1%80%d0%be%d0%b3%d1%80%d0%b0%d0%bc%d0%bc%d0%bd%d1%8b%d0%bc%d0%b8%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82%d0%b0%d0%bc%d0%b8/%d0%9b%d0%a0/%d0%a8%d0%b0%d1%80%d0%b4%d1%82%20%d0%9c.%d0%90.%20%d0%9b%d0%b0%d0%b1%202.docx">Шардт М.А. Лаб 2.docx</a><br>
+
+
+
+<a href="../../4/%d0%a3%d0%bf%d1%80%d0%b0%d0%b2%d0%bb%d0%b5%d0%bd%d0%b8%d0%b5%20%d0%bf%d1%80%d0%be%d0%b3%d1%80%d0%b0%d0%bc%d0%bc%d0%bd%d1%8b%d0%bc%d0%b8%20%d0%bf%d1%80%d0%be%d0%b5%d0%ba%d1%82%d0%b0%d0%bc%d0%b8/%d0%9b%d0%a0/%d0%a8%d0%b0%d1%80%d0%b4%d1%82%20%d0%9c.%d0%90.%20%d0%9b%d0%b0%d0%b1%203.docx">Шардт М.А. Лаб 3.docx</a><br>
+
+
+
+
+
+
+
+<h2>Языки написания спецификаций</h2>
+
+
+
+
+
+
+
+
+<a href="../../4/%d0%af%d0%b7%d1%8b%d0%ba%d0%b8%20%d0%bd%d0%b0%d0%bf%d0%b8%d1%81%d0%b0%d0%bd%d0%b8%d1%8f%20%d1%81%d0%bf%d0%b5%d1%86%d0%b8%d1%84%d0%b8%d0%ba%d0%b0%d1%86%d0%b8%d0%b9/%d0%94%d0%b8%d0%b0%d0%b3%d1%80%d0%b0%d0%bc%d0%bc%d1%8b%20%d0%b4%d0%bb%d1%8f%20%d0%92%d0%9a%d0%a0.pptx">Диаграммы для ВКР.pptx</a><br>
+
+
+
+
+
+
+            </div>
+        </main>
+    </body></html>
